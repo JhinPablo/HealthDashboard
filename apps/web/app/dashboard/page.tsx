@@ -1,5 +1,3 @@
-import { DashboardView } from "../../components/dashboard-view";
-
 export default function DashboardPage() {
-  return <DashboardView />;
+  return <section className="glass-card panel-card loading-panel">Abriendo dashboard...</section>;
 }

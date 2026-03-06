@@ -1,6 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useState, useTransition } from "react";
+import {
+  FormEvent,
+  useDeferredValue,
+  useEffect,
+  useState,
+  useTransition
+} from "react";
 import {
   classifyObservationSeverity,
   formatObservationCode,
@@ -74,6 +80,40 @@ const initialApiKeyForm: ApiKeyFormState = {
   ownerUserId: ""
 };
 
+function matchesPatientSearch(
+  patient: PatientResource,
+  linkedUser: UserSummary | undefined,
+  query: string
+): boolean {
+  if (!query.trim()) {
+    return true;
+  }
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const searchableValues = [
+    patient.id,
+    getPatientDisplayName(patient),
+    patient.identifier[0]?.value ?? "",
+    patient.gender,
+    patient.birthDate,
+    linkedUser?.email ?? "",
+    linkedUser?.fullName ?? ""
+  ];
+
+  return searchableValues.some((value) => value.toLowerCase().includes(normalizedQuery));
+}
+
+function toEditablePatientForm(patient: PatientResource) {
+  return {
+    givenName: patient.name[0]?.given[0] ?? "",
+    familyName: patient.name[0]?.family ?? "",
+    identifierValue: patient.identifier[0]?.value ?? "",
+    gender: patient.gender,
+    birthDate: patient.birthDate.slice(0, 10),
+    medicalSummary: patient.medicalSummary ?? ""
+  };
+}
+
 export function DoctorDashboard({ token }: DoctorDashboardProps) {
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
   const [patients, setPatients] = useState<PatientResource[]>([]);
@@ -85,7 +125,10 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
   const [selectedTrendObservationId, setSelectedTrendObservationId] = useState<string | null>(
     null
   );
+  const [patientSearch, setPatientSearch] = useState("");
+  const deferredPatientSearch = useDeferredValue(patientSearch);
   const [patientForm, setPatientForm] = useState(initialPatientForm);
+  const [editPatientForm, setEditPatientForm] = useState(initialPatientForm);
   const [observationForm, setObservationForm] = useState(initialObservationForm);
   const [patientUserForm, setPatientUserForm] = useState(initialPatientUserForm);
   const [apiKeyForm, setApiKeyForm] = useState(initialApiKeyForm);
@@ -184,7 +227,19 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
     });
   };
 
+  const patientUsersByPatientId = new Map(
+    users
+      .filter((user) => user.patientId != null)
+      .map((user) => [String(user.patientId), user] as const)
+  );
   const patientInsights = buildPatientInsights(patients, observations);
+  const filteredPatientInsights = patientInsights.filter((insight) =>
+    matchesPatientSearch(
+      insight.patient,
+      patientUsersByPatientId.get(insight.patient.id),
+      deferredPatientSearch
+    )
+  );
   const metricInsights = buildMetricInsights(observations, patients);
   const operationalHighlights = buildOperationalHighlights(
     patientInsights,
@@ -193,14 +248,18 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
     patients
   );
   const selectedInsight =
-    patientInsights.find((insight) => insight.patient.id === selectedPatientId) ??
-    patientInsights[0] ??
+    filteredPatientInsights.find((insight) => insight.patient.id === selectedPatientId) ??
+    filteredPatientInsights[0] ??
     null;
   const selectedPatientAlerts =
     selectedInsight?.observations.filter(
       (observation) => classifyObservationSeverity(observation) !== "normal"
     ) ?? [];
-  const highlightedPatients = patientInsights.slice(0, 8).map((insight) => ({
+  const selectedPatientUser = selectedInsight
+    ? patientUsersByPatientId.get(selectedInsight.patient.id)
+    : undefined;
+  const selectedPatientRecentObservations = selectedInsight?.observations.slice(0, 6) ?? [];
+  const highlightedPatients = filteredPatientInsights.slice(0, 8).map((insight) => ({
     id: insight.patient.id,
     label: getPatientDisplayName(insight.patient),
     observations: insight.observations.length,
@@ -215,6 +274,31 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
   const metricTrend = selectedMetric
     ? buildMetricTrend(observations, patients, selectedMetric.key, 16)
     : [];
+
+  useEffect(() => {
+    if (!filteredPatientInsights.length) {
+      if (selectedPatientId !== null) {
+        setSelectedPatientId(null);
+      }
+      return;
+    }
+
+    if (
+      !selectedPatientId ||
+      !filteredPatientInsights.some((insight) => insight.patient.id === selectedPatientId)
+    ) {
+      setSelectedPatientId(filteredPatientInsights[0].patient.id);
+    }
+  }, [filteredPatientInsights, selectedPatientId]);
+
+  useEffect(() => {
+    if (!selectedInsight) {
+      setEditPatientForm(initialPatientForm);
+      return;
+    }
+
+    setEditPatientForm(toEditablePatientForm(selectedInsight.patient));
+  }, [selectedInsight?.patient.id, selectedInsight?.patient.meta.lastUpdated]);
 
   useEffect(() => {
     if (!metricInsights.length) {
@@ -335,6 +419,10 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
                 <strong>{getPatientDisplayName(selectedInsight.patient)}</strong>
               </div>
               <div>
+                <span className="profile-label">Portal vinculado</span>
+                <strong>{selectedPatientUser?.email ?? "Sin cuenta portal"}</strong>
+              </div>
+              <div>
                 <span className="profile-label">Observaciones</span>
                 <strong>{selectedInsight.observations.length}</strong>
               </div>
@@ -349,6 +437,10 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
               <div>
                 <span className="profile-label">Documento</span>
                 <strong>{selectedInsight.patient.identifier[0]?.value ?? "Sin documento"}</strong>
+              </div>
+              <div>
+                <span className="profile-label">Genero</span>
+                <strong>{selectedInsight.patient.gender}</strong>
               </div>
               <div>
                 <span className="profile-label">Ultimo registro</span>
@@ -432,6 +524,47 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
                 )}
               </div>
             </div>
+
+            <div className="detail-subsection">
+              <span className="profile-label">Observaciones recientes</span>
+              <div className="stack-list">
+                {selectedPatientRecentObservations.length ? (
+                  selectedPatientRecentObservations.map((observation) => {
+                    const severity = classifyObservationSeverity(observation);
+
+                    return (
+                      <article
+                        key={observation.id}
+                        className={
+                          severity === "critical"
+                            ? "observation-item alert-item"
+                            : severity === "warning"
+                              ? "observation-item warning-item"
+                              : "observation-item"
+                        }
+                      >
+                        <div>
+                          <strong>{formatObservationCode(observation.code.text)}</strong>
+                          <span>
+                            {new Date(observation.effectiveDateTime).toLocaleString("es-CL")}
+                          </span>
+                        </div>
+                        <div className="observation-side">
+                          <strong>
+                            {observation.valueQuantity.value} {observation.valueQuantity.unit}
+                          </strong>
+                          <span>{observation.note?.[0]?.text ?? observation.status}</span>
+                        </div>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <div className="empty-state compact-empty">
+                    Este paciente aun no tiene observaciones registradas.
+                  </div>
+                )}
+              </div>
+            </div>
           </>
         ) : (
           <div className="empty-state">Selecciona un paciente para inspeccionar el detalle.</div>
@@ -469,25 +602,227 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
       <section className="glass-card panel-card wide-panel">
         <div className="section-heading">
           <div>
-            <h3>Panel general de pacientes</h3>
-            <p>Vista resumida del historico y acceso rapido al registro interoperable.</p>
+            <h3>Centro de gestion de pacientes</h3>
+            <p>Busca, prioriza y administra recursos `Patient` desde el mismo tablero clinico.</p>
+          </div>
+          <div className="chart-legend">
+            <span className="pill">{filteredPatientInsights.length} visibles</span>
+            <span className="pill">{patients.length} totales</span>
           </div>
         </div>
-        <div className="data-table">
-          <div className="table-head">
-            <span>Paciente</span>
-            <span>Documento</span>
-            <span>Genero</span>
-            <span>Nacimiento</span>
+
+        <div className="management-toolbar">
+          <input
+            placeholder="Buscar por nombre, documento, genero o correo portal"
+            value={patientSearch}
+            onChange={(event) => setPatientSearch(event.target.value)}
+          />
+          <span className="muted-text">
+            La seleccion aqui sincroniza el resto del dashboard y el formulario de edicion.
+          </span>
+        </div>
+
+        <div className="patient-management-grid">
+          <div className="patient-roster">
+            {filteredPatientInsights.length ? (
+              filteredPatientInsights.map((insight) => {
+                const linkedUser = patientUsersByPatientId.get(insight.patient.id);
+
+                return (
+                  <button
+                    key={insight.patient.id}
+                    type="button"
+                    className={
+                      insight.patient.id === selectedInsight?.patient.id
+                        ? "patient-card patient-card-selected"
+                        : "patient-card"
+                    }
+                    onClick={() => setSelectedPatientId(insight.patient.id)}
+                  >
+                    <div className="patient-card-header">
+                      <strong>{getPatientDisplayName(insight.patient)}</strong>
+                      <span
+                        className={
+                          insight.criticalOutlierCount > 0
+                            ? "status-chip status-chip-critical"
+                            : insight.alarmCount > 0
+                              ? "status-chip status-chip-warning"
+                              : "status-chip status-chip-default"
+                        }
+                      >
+                        {insight.criticalOutlierCount > 0
+                          ? "Critico"
+                          : insight.alarmCount > 0
+                            ? "En seguimiento"
+                            : "Estable"}
+                      </span>
+                    </div>
+                    <div className="patient-card-grid">
+                      <div>
+                        <span className="profile-label">Documento</span>
+                        <strong>{insight.patient.identifier[0]?.value ?? "Sin documento"}</strong>
+                      </div>
+                      <div>
+                        <span className="profile-label">Portal</span>
+                        <strong>
+                          {linkedUser
+                            ? linkedUser.isActive
+                              ? "Usuario activo"
+                              : "Usuario desactivado"
+                            : "Sin cuenta"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="profile-label">Alertas</span>
+                        <strong>{insight.alarmCount}</strong>
+                      </div>
+                      <div>
+                        <span className="profile-label">Outliers</span>
+                        <strong>{insight.criticalOutlierCount}</strong>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="empty-state compact-empty">
+                Ningun paciente coincide con la busqueda actual.
+              </div>
+            )}
           </div>
-          {patients.map((patient) => (
-            <div className="table-row" key={patient.id}>
-              <span>{`${patient.name[0]?.given[0] ?? ""} ${patient.name[0]?.family ?? ""}`}</span>
-              <span>{patient.identifier[0]?.value}</span>
-              <span>{patient.gender}</span>
-              <span>{patient.birthDate}</span>
+
+          <div className="detail-card">
+            <div className="section-heading">
+              <div>
+                <h3>Editar recurso Patient</h3>
+                <p>Actualiza datos demograficos y resumen clinico con la misma estructura FHIR-lite.</p>
+              </div>
             </div>
-          ))}
+
+            {selectedInsight ? (
+              <form
+                className="form-grid"
+                onSubmit={(event: FormEvent<HTMLFormElement>) => {
+                  event.preventDefault();
+                  submitAction(
+                    async () => {
+                      await api.updatePatient(
+                        token,
+                        Number(selectedInsight.patient.id),
+                        editPatientForm
+                      );
+                    },
+                    "Paciente actualizado correctamente.",
+                    "No fue posible actualizar el paciente."
+                  );
+                }}
+              >
+                <input
+                  placeholder="Nombre"
+                  value={editPatientForm.givenName}
+                  onChange={(event) =>
+                    setEditPatientForm((current) => ({
+                      ...current,
+                      givenName: event.target.value
+                    }))
+                  }
+                  required
+                />
+                <input
+                  placeholder="Apellido"
+                  value={editPatientForm.familyName}
+                  onChange={(event) =>
+                    setEditPatientForm((current) => ({
+                      ...current,
+                      familyName: event.target.value
+                    }))
+                  }
+                  required
+                />
+                <input
+                  placeholder="Documento"
+                  value={editPatientForm.identifierValue}
+                  onChange={(event) =>
+                    setEditPatientForm((current) => ({
+                      ...current,
+                      identifierValue: event.target.value
+                    }))
+                  }
+                  required
+                />
+                <select
+                  value={editPatientForm.gender}
+                  onChange={(event) =>
+                    setEditPatientForm((current) => ({
+                      ...current,
+                      gender: event.target.value
+                    }))
+                  }
+                >
+                  <option value="female">female</option>
+                  <option value="male">male</option>
+                  <option value="other">other</option>
+                  <option value="unknown">unknown</option>
+                </select>
+                <input
+                  type="date"
+                  value={editPatientForm.birthDate}
+                  onChange={(event) =>
+                    setEditPatientForm((current) => ({
+                      ...current,
+                      birthDate: event.target.value
+                    }))
+                  }
+                  required
+                />
+                <textarea
+                  placeholder="Resumen medico"
+                  value={editPatientForm.medicalSummary}
+                  onChange={(event) =>
+                    setEditPatientForm((current) => ({
+                      ...current,
+                      medicalSummary: event.target.value
+                    }))
+                  }
+                  rows={4}
+                  required
+                />
+                <div className="detail-actions">
+                  <button type="submit" className="primary-button" disabled={isPending}>
+                    {isPending ? "Guardando..." : "Guardar cambios"}
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-button"
+                    disabled={isPending}
+                    onClick={() => {
+                      const confirmed = window.confirm(
+                        `Se eliminara el paciente ${getPatientDisplayName(selectedInsight.patient)}. La cuenta portal vinculada, si existe, quedara desactivada.`
+                      );
+
+                      if (!confirmed) {
+                        return;
+                      }
+
+                      submitAction(
+                        async () => {
+                          await api.deletePatient(token, Number(selectedInsight.patient.id));
+                        },
+                        "Paciente eliminado correctamente.",
+                        "No fue posible eliminar el paciente."
+                      );
+                    }}
+                  >
+                    {isPending ? "Procesando..." : "Eliminar paciente"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="empty-state compact-empty">
+                Selecciona un paciente para editar o eliminar el recurso.
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

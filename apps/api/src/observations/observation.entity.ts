@@ -14,7 +14,7 @@ export class ObservationEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ name: "patient_id" })
+  @Column({ name: "patient_id", type: "int" })
   patientId!: number;
 
   @ManyToOne(() => PatientEntity, (patient) => patient.observations, { onDelete: "CASCADE" })

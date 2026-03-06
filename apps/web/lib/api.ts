@@ -146,6 +146,42 @@ export const api = {
       token
     ),
 
+  updatePatient: (
+    token: string,
+    patientId: number,
+    payload: {
+      givenName: string;
+      familyName: string;
+      identifierValue: string;
+      gender: string;
+      birthDate: string;
+      medicalSummary: string;
+    }
+  ) =>
+    apiFetch<PatientResource>(
+      `/fhir/Patient/${patientId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          identifier: [{ system: "national-id", value: payload.identifierValue }],
+          name: [{ given: [payload.givenName], family: payload.familyName }],
+          gender: payload.gender,
+          birthDate: payload.birthDate,
+          medicalSummary: payload.medicalSummary
+        })
+      },
+      token
+    ),
+
+  deletePatient: (token: string, patientId: number) =>
+    apiFetch<{ deleted: true }>(
+      `/fhir/Patient/${patientId}`,
+      {
+        method: "DELETE"
+      },
+      token
+    ),
+
   createObservation: (
     token: string,
     payload: {
@@ -174,6 +210,45 @@ export const api = {
           },
           note: payload.note
         })
+      },
+      token
+    ),
+
+  updateObservation: (
+    token: string,
+    observationId: number,
+    payload: {
+      code: string;
+      value: number;
+      unit: string;
+      effectiveDateTime: string;
+      status: string;
+      note?: string;
+    }
+  ) =>
+    apiFetch<ObservationResource>(
+      `/fhir/Observation/${observationId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: payload.status,
+          code: { text: payload.code },
+          effectiveDateTime: payload.effectiveDateTime,
+          valueQuantity: {
+            value: payload.value,
+            unit: payload.unit
+          },
+          note: payload.note
+        })
+      },
+      token
+    ),
+
+  deleteObservation: (token: string, observationId: number) =>
+    apiFetch<{ deleted: true }>(
+      `/fhir/Observation/${observationId}`,
+      {
+        method: "DELETE"
       },
       token
     ),

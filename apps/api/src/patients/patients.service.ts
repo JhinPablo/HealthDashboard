@@ -8,6 +8,7 @@ import { Repository } from "typeorm";
 import { CryptoService } from "../common/services/crypto.service";
 import { AuthActor } from "../common/types/auth-actor.interface";
 import { Role } from "../common/types/role.enum";
+import { UserEntity } from "../users/user.entity";
 import { createFhirBundle } from "../common/utils/fhir-bundle.util";
 import { CreatePatientDto, PatientResourceDto, UpdatePatientDto } from "./dto/patient-resource.dto";
 import { PatientEntity } from "./patient.entity";
@@ -17,6 +18,8 @@ export class PatientsService {
   constructor(
     @InjectRepository(PatientEntity)
     private readonly patientsRepository: Repository<PatientEntity>,
+    @InjectRepository(UserEntity)
+    private readonly usersRepository: Repository<UserEntity>,
     private readonly cryptoService: CryptoService
   ) {}
 
@@ -110,6 +113,20 @@ export class PatientsService {
     const patient = await this.patientsRepository.findOne({ where: { id } });
     if (!patient) {
       throw new NotFoundException("Patient not found.");
+    }
+
+    const linkedUsers = await this.usersRepository.find({
+      where: { patientId: id }
+    });
+
+    if (linkedUsers.length) {
+      await this.usersRepository.save(
+        linkedUsers.map((user) => ({
+          ...user,
+          patientId: null,
+          isActive: false
+        }))
+      );
     }
 
     await this.patientsRepository.remove(patient);
