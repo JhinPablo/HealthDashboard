@@ -5,6 +5,7 @@ services:
     rootDir: .
     buildCommand: npm install && npm run build --workspace @saluddigital/api
     startCommand: npm run start --workspace @saluddigital/api
+    healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: 22
@@ -40,6 +41,7 @@ services:
     rootDir: .
     buildCommand: npm install && npm run build --workspace @saluddigital/web
     startCommand: npm run start --workspace @saluddigital/web
+    healthCheckPath: /login
     envVars:
       - key: NODE_VERSION
         value: 22
