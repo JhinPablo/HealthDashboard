@@ -14,11 +14,11 @@ export class ObservationEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column({ name: "patient_id" })
   patientId!: number;
 
   @ManyToOne(() => PatientEntity, (patient) => patient.observations, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "patientId" })
+  @JoinColumn({ name: "patient_id" })
   patient!: PatientEntity;
 
   @Column()
@@ -30,7 +30,7 @@ export class ObservationEntity {
   @Column()
   unit!: string;
 
-  @Column({ type: "timestamptz" })
+  @Column({ name: "effective_datetime", type: "timestamptz" })
   effectiveDateTime!: Date;
 
   @Column()
@@ -39,9 +39,17 @@ export class ObservationEntity {
   @Column({ type: "text", nullable: true })
   notes!: string | null;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({
+    name: "created_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
   createdAt!: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({
+    name: "updated_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
   updatedAt!: Date;
 }

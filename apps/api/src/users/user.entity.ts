@@ -20,10 +20,10 @@ export class UserEntity {
   @Column({ unique: true })
   email!: string;
 
-  @Column()
+  @Column({ name: "full_name" })
   fullName!: string;
 
-  @Column()
+  @Column({ name: "password_hash" })
   passwordHash!: string;
 
   @Column({
@@ -32,22 +32,30 @@ export class UserEntity {
   })
   role!: Role;
 
-  @Column({ default: true })
+  @Column({ name: "is_active", default: true })
   isActive!: boolean;
 
-  @Column({ type: "int", nullable: true })
+  @Column({ name: "patient_id", type: "int", nullable: true })
   patientId!: number | null;
 
   @OneToOne(() => PatientEntity, (patient) => patient.user, { nullable: true })
-  @JoinColumn({ name: "patientId" })
+  @JoinColumn({ name: "patient_id" })
   patient!: PatientEntity | null;
 
   @OneToMany(() => ApiKeyEntity, (apiKey) => apiKey.ownerUser)
   apiKeys!: ApiKeyEntity[];
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({
+    name: "created_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
   createdAt!: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({
+    name: "updated_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
   updatedAt!: Date;
 }

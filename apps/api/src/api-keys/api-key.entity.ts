@@ -24,25 +24,33 @@ export class ApiKeyEntity {
   })
   role!: Role;
 
-  @Column()
+  @Column({ name: "access_key_hash" })
   accessKeyHash!: string;
 
-  @Column()
+  @Column({ name: "permission_key_hash" })
   permissionKeyHash!: string;
 
-  @Column({ default: true })
+  @Column({ name: "is_active", default: true })
   isActive!: boolean;
 
-  @Column({ type: "uuid", nullable: true })
+  @Column({ name: "owner_user_id", type: "uuid", nullable: true })
   ownerUserId!: string | null;
 
   @ManyToOne(() => UserEntity, (user) => user.apiKeys, { nullable: true, onDelete: "SET NULL" })
-  @JoinColumn({ name: "ownerUserId" })
+  @JoinColumn({ name: "owner_user_id" })
   ownerUser!: UserEntity | null;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({
+    name: "created_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
   createdAt!: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({
+    name: "updated_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
   updatedAt!: Date;
 }

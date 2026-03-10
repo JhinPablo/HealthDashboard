@@ -15,22 +15,22 @@ export class PatientEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column({ name: "given_name" })
   givenName!: string;
 
-  @Column()
+  @Column({ name: "family_name" })
   familyName!: string;
 
   @Column()
   gender!: string;
 
-  @Column({ type: "date" })
+  @Column({ name: "birth_date", type: "date" })
   birthDate!: string;
 
-  @Column({ type: "text" })
+  @Column({ name: "identification_doc_encrypted", type: "text" })
   identificationDocEncrypted!: string;
 
-  @Column({ type: "text" })
+  @Column({ name: "medical_summary_encrypted", type: "text" })
   medicalSummaryEncrypted!: string;
 
   @OneToMany(() => ObservationEntity, (observation) => observation.patient)
@@ -39,9 +39,17 @@ export class PatientEntity {
   @OneToOne(() => UserEntity, (user) => user.patient)
   user!: UserEntity | null;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({
+    name: "created_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
   createdAt!: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({
+    name: "updated_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
   updatedAt!: Date;
 }
