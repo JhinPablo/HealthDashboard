@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../lib/api";
 import { DoctorDashboard } from "./doctor-dashboard";
 import { PatientDashboard } from "./patient-dashboard";
@@ -11,6 +11,11 @@ export function DashboardView() {
   const router = useRouter();
   const { ready, token, user, refreshUser, logout } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const sessionActionsRef = useRef({ refreshUser, logout });
+
+  useEffect(() => {
+    sessionActionsRef.current = { refreshUser, logout };
+  }, [logout, refreshUser]);
 
   useEffect(() => {
     if (!ready) {
@@ -22,16 +27,16 @@ export function DashboardView() {
       return;
     }
 
-    refreshUser().catch((refreshError) => {
+    sessionActionsRef.current.refreshUser().catch((refreshError) => {
       setError(
         refreshError instanceof ApiError
           ? refreshError.message
           : "No fue posible validar la sesion."
       );
-      logout();
+      sessionActionsRef.current.logout();
       router.replace("/login");
     });
-  }, [logout, ready, refreshUser, router, token]);
+  }, [ready, router, token]);
 
   if (!ready || !token || !user) {
     return <main className="dashboard-shell loading-panel">Cargando sesion...</main>;
