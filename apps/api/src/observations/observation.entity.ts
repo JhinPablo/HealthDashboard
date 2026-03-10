@@ -21,19 +21,19 @@ export class ObservationEntity {
   @JoinColumn({ name: "patient_id" })
   patient!: PatientEntity;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   code!: string | null;
 
   @Column("float", { nullable: true })
   value!: number | null;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   unit!: string | null;
 
   @Column({ name: "effective_datetime", type: "timestamptz", nullable: true })
   effectiveDateTime!: Date | null;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   status!: string | null;
 
   @Column({ type: "text", nullable: true })
