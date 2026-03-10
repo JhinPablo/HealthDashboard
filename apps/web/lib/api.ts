@@ -87,9 +87,9 @@ export const api = {
   getPatient: (token: string, patientId: number) =>
     apiFetch<PatientResource>(`/fhir/Patient/${patientId}`, {}, token),
 
-  getObservations: (token: string, patientId?: number) =>
+  getObservations: (token: string, patientId?: number, limit = 200, offset = 0) =>
     apiFetch<FhirBundle<ObservationResource>>(
-      `/fhir/Observation?limit=50&offset=0${patientId ? `&patientId=${patientId}` : ""}`,
+      `/fhir/Observation?limit=${limit}&offset=${offset}${patientId ? `&patientId=${patientId}` : ""}`,
       {},
       token
     ),

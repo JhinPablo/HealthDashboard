@@ -17,7 +17,6 @@ import {
 } from "@nestjs/swagger";
 import { CurrentActor } from "../common/decorators/current-actor.decorator";
 import { Roles } from "../common/decorators/roles.decorator";
-import { PaginationQueryDto } from "../common/dto/pagination-query.dto";
 import { AuthActor } from "../common/types/auth-actor.interface";
 import { Role } from "../common/types/role.enum";
 import {
@@ -57,10 +56,9 @@ export class ObservationsController {
   })
   findAll(
     @CurrentActor() actor: AuthActor,
-    @Query() pagination: PaginationQueryDto,
-    @Query() filters: ObservationQueryDto
+    @Query() query: ObservationQueryDto
   ) {
-    return this.observationsService.findAll(actor, pagination, filters);
+    return this.observationsService.findAll(actor, query);
   }
 
   @Get(":id")

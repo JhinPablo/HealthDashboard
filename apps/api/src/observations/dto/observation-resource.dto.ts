@@ -9,6 +9,7 @@ import {
   Min,
   ValidateNested
 } from "class-validator";
+import { PaginationQueryDto } from "../../common/dto/pagination-query.dto";
 
 export class ObservationCodeDto {
   @ApiProperty({ example: "body-temperature" })
@@ -97,7 +98,7 @@ export class UpdateObservationDto {
   note?: string;
 }
 
-export class ObservationQueryDto {
+export class ObservationQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)

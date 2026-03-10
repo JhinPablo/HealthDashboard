@@ -43,23 +43,22 @@ export class ObservationsService {
 
   async findAll(
     actor: AuthActor,
-    pagination: PaginationQueryDto,
-    filters: ObservationQueryDto
+    query: ObservationQueryDto
   ) {
-    const patientId = this.resolvePatientScope(actor, filters.patientId);
+    const patientId = this.resolvePatientScope(actor, query.patientId);
 
     const [observations, total] = await this.observationsRepository.findAndCount({
       where: patientId ? { patientId } : undefined,
       order: { effectiveDateTime: "DESC" },
-      take: pagination.limit,
-      skip: pagination.offset
+      take: query.limit,
+      skip: query.offset
     });
 
     return createFhirBundle(
       observations.map((observation) => this.toFhirResource(observation)),
       total,
-      pagination.limit,
-      pagination.offset
+      query.limit,
+      query.offset
     );
   }
 

@@ -3,8 +3,8 @@ import { AuthProvider } from "../components/auth-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Salud Digital Interoperable",
-  description: "Dashboard clinico interoperable con autenticacion por roles."
+  title: "HealthDashboard",
+  description: "Panel clinico interoperable con autenticacion por roles."
 };
 
 export default function RootLayout({

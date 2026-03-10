@@ -42,7 +42,7 @@ export function LoginView() {
       <section className="login-hero">
         <div className="hero-copy">
           <span className="eyebrow">Entregable 1 interoperable</span>
-          <h1>Salud digital con acceso clinico seguro y dashboards por rol.</h1>
+          <h1>HealthDashboard</h1>
           <p>
             Backend FHIR-lite, seguridad hibrida JWT + API keys, cifrado de datos
             sensibles y visualizacion diferenciada para medico administrador y paciente.

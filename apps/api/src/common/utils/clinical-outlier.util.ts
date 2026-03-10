@@ -9,23 +9,23 @@ export function detectClinicalOutlier(
   const normalizedCode = code.toLowerCase();
 
   if (normalizedCode.includes("temperature")) {
-    return value < 30 || value > 45;
+    return value <= 35 || value >= 39;
   }
 
   if (normalizedCode.includes("heart")) {
-    return value < 30 || value > 220;
+    return value <= 40 || value >= 120;
   }
 
   if (normalizedCode.includes("systolic")) {
-    return value < 60 || value > 250;
+    return value <= 80 || value >= 180;
   }
 
   if (normalizedCode.includes("diastolic")) {
-    return value < 30 || value > 160;
+    return value <= 50 || value >= 120;
   }
 
   if (normalizedCode.includes("spo2") || normalizedCode.includes("oxygen")) {
-    return value < 60 || value > 100;
+    return value <= 90 || value > 100;
   }
 
   return false;

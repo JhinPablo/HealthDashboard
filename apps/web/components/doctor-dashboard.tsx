@@ -1,6 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState, useTransition } from "react";
+import {
+  classifyObservationSeverity,
+  formatObservationCode,
+  getObservationPatientId,
+  getPatientDisplayName
+} from "../lib/clinical-insights";
 import { api, ApiError } from "../lib/api";
 import {
   AdminDashboardData,
@@ -9,11 +15,19 @@ import {
   PatientResource,
   UserSummary
 } from "../lib/types";
-import { LineChart } from "./line-chart";
+import { PatientAlertChart } from "./patient-alert-chart";
 import { StatCard } from "./stat-card";
 
 interface DoctorDashboardProps {
   token: string;
+}
+
+interface PatientInsight {
+  patient: PatientResource;
+  observations: ObservationResource[];
+  alarmCount: number;
+  criticalOutlierCount: number;
+  latestObservation: ObservationResource | null;
 }
 
 type ApiKeyFormState = {
@@ -61,12 +75,63 @@ const initialApiKeyForm: ApiKeyFormState = {
   ownerUserId: ""
 };
 
+function buildPatientInsights(
+  patients: PatientResource[],
+  observations: ObservationResource[]
+): PatientInsight[] {
+  const groupedObservations = new Map<number, ObservationResource[]>();
+
+  observations.forEach((observation) => {
+    const patientId = getObservationPatientId(observation);
+    if (!patientId) {
+      return;
+    }
+
+    const current = groupedObservations.get(patientId) ?? [];
+    current.push(observation);
+    groupedObservations.set(patientId, current);
+  });
+
+  return [...patients]
+    .map((patient) => {
+      const patientId = Number(patient.id);
+      const patientObservations = [...(groupedObservations.get(patientId) ?? [])].sort(
+        (left, right) =>
+          new Date(right.effectiveDateTime).getTime() -
+          new Date(left.effectiveDateTime).getTime()
+      );
+
+      const alarmCount = patientObservations.filter(
+        (observation) => classifyObservationSeverity(observation) !== "normal"
+      ).length;
+      const criticalOutlierCount = patientObservations.filter(
+        (observation) => classifyObservationSeverity(observation) === "critical"
+      ).length;
+
+      return {
+        patient,
+        observations: patientObservations,
+        alarmCount,
+        criticalOutlierCount,
+        latestObservation: patientObservations[0] ?? null
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.criticalOutlierCount - left.criticalOutlierCount ||
+        right.alarmCount - left.alarmCount ||
+        right.observations.length - left.observations.length ||
+        getPatientDisplayName(left.patient).localeCompare(getPatientDisplayName(right.patient))
+    );
+}
+
 export function DoctorDashboard({ token }: DoctorDashboardProps) {
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
   const [patients, setPatients] = useState<PatientResource[]>([]);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKeySummary[]>([]);
   const [observations, setObservations] = useState<ObservationResource[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [patientForm, setPatientForm] = useState(initialPatientForm);
   const [observationForm, setObservationForm] = useState(initialObservationForm);
   const [patientUserForm, setPatientUserForm] = useState(initialPatientUserForm);
@@ -85,11 +150,21 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
         api.getObservations(token)
       ]);
 
+    const patientResources = patientsResponse.entry.map((entry) => entry.resource);
+    const observationResources = observationsResponse.entry.map((entry) => entry.resource);
+
     setDashboard(dashboardResponse);
-    setPatients(patientsResponse.entry.map((entry) => entry.resource));
+    setPatients(patientResources);
     setUsers(usersResponse);
     setApiKeys(apiKeysResponse);
-    setObservations(observationsResponse.entry.map((entry) => entry.resource));
+    setObservations(observationResources);
+    setSelectedPatientId((current) => {
+      if (current && patientResources.some((patient) => patient.id === current)) {
+        return current;
+      }
+
+      return buildPatientInsights(patientResources, observationResources)[0]?.patient.id ?? null;
+    });
   };
 
   useEffect(() => {
@@ -123,14 +198,23 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
     });
   };
 
-  const chartPoints = observations
-    .slice(0, 12)
-    .reverse()
-    .map((observation, index) => ({
-      label: `${index + 1}`,
-      value: observation.valueQuantity.value,
-      highlight: Boolean(observation.interpretation?.length)
-    }));
+  const patientInsights = buildPatientInsights(patients, observations);
+  const selectedInsight =
+    patientInsights.find((insight) => insight.patient.id === selectedPatientId) ??
+    patientInsights[0] ??
+    null;
+  const selectedPatientAlerts =
+    selectedInsight?.observations.filter(
+      (observation) => classifyObservationSeverity(observation) !== "normal"
+    ) ?? [];
+  const highlightedPatients = patientInsights.slice(0, 8).map((insight) => ({
+    id: insight.patient.id,
+    label: getPatientDisplayName(insight.patient),
+    observations: insight.observations.length,
+    alarms: insight.alarmCount,
+    criticalOutliers: insight.criticalOutlierCount,
+    isSelected: insight.patient.id === selectedInsight?.patient.id
+  }));
 
   return (
     <section className="dashboard-grid">
@@ -148,12 +232,105 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
       {error ? <div className="glass-card form-error-banner">{error}</div> : null}
       {feedback ? <div className="glass-card success-banner">{feedback}</div> : null}
 
-      <LineChart
-        title="Ritmo de observaciones"
-        subtitle="Ultimos 12 registros clinicos capturados en la plataforma."
-        unit={observations[0]?.valueQuantity.unit}
-        points={chartPoints}
+      <PatientAlertChart
+        title="Alarmas y outliers por paciente"
+        subtitle="Haz click en una barra para inspeccionar el historial operativo del paciente."
+        data={highlightedPatients}
+        onSelect={setSelectedPatientId}
       />
+
+      <section className="glass-card panel-card">
+        <div className="section-heading">
+          <div>
+            <h3>Paciente seleccionado</h3>
+            <p>
+              Detalle contextual del paciente activo, con foco en alarmas clinicas y
+              registros recientes.
+            </p>
+          </div>
+          {selectedInsight ? <span className="pill">{selectedInsight.patient.id}</span> : null}
+        </div>
+
+        {selectedInsight ? (
+          <>
+            <div className="profile-block">
+              <div>
+                <span className="profile-label">Paciente</span>
+                <strong>{getPatientDisplayName(selectedInsight.patient)}</strong>
+              </div>
+              <div>
+                <span className="profile-label">Observaciones</span>
+                <strong>{selectedInsight.observations.length}</strong>
+              </div>
+              <div>
+                <span className="profile-label">Alarmas</span>
+                <strong>{selectedInsight.alarmCount}</strong>
+              </div>
+              <div>
+                <span className="profile-label">Outliers criticos</span>
+                <strong>{selectedInsight.criticalOutlierCount}</strong>
+              </div>
+              <div>
+                <span className="profile-label">Documento</span>
+                <strong>{selectedInsight.patient.identifier[0]?.value ?? "Sin documento"}</strong>
+              </div>
+              <div>
+                <span className="profile-label">Ultimo registro</span>
+                <strong>
+                  {selectedInsight.latestObservation
+                    ? new Date(selectedInsight.latestObservation.effectiveDateTime).toLocaleString(
+                        "es-CL"
+                      )
+                    : "Sin observaciones"}
+                </strong>
+              </div>
+            </div>
+
+            <div className="detail-subsection">
+              <span className="profile-label">Ultimas alertas del paciente</span>
+              <div className="stack-list">
+                {selectedPatientAlerts.length ? (
+                  selectedPatientAlerts.slice(0, 5).map((observation) => {
+                    const severity = classifyObservationSeverity(observation);
+
+                    return (
+                      <article
+                        key={observation.id}
+                        className={
+                          severity === "critical"
+                            ? "observation-item alert-item"
+                            : "observation-item warning-item"
+                        }
+                      >
+                        <div>
+                          <strong>{formatObservationCode(observation.code.text)}</strong>
+                          <span>
+                            {new Date(observation.effectiveDateTime).toLocaleString("es-CL")}
+                          </span>
+                        </div>
+                        <div className="observation-side">
+                          <strong>
+                            {observation.valueQuantity.value} {observation.valueQuantity.unit}
+                          </strong>
+                          <span>
+                            {severity === "critical" ? "Outlier critico" : "Alarma preventiva"}
+                          </span>
+                        </div>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <div className="empty-state compact-empty">
+                    Este paciente no presenta alarmas activas en los datos cargados.
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="empty-state">Selecciona un paciente para inspeccionar el detalle.</div>
+        )}
+      </section>
 
       <section className="glass-card panel-card">
         <div className="section-heading">
@@ -165,8 +342,12 @@ export function DoctorDashboard({ token }: DoctorDashboardProps) {
         <div className="stack-list">
           {dashboard?.outlierObservations.length ? (
             dashboard.outlierObservations.map((observation) => (
-              <article key={observation.id} className="alert-item">
-                <strong>{observation.code.text}</strong>
+              <article
+                key={observation.id}
+                className="alert-item clickable-card"
+                onClick={() => setSelectedPatientId(observation.subject.reference.split("/")[1] ?? null)}
+              >
+                <strong>{formatObservationCode(observation.code.text)}</strong>
                 <span>{observation.subject.reference}</span>
                 <span>
                   {observation.valueQuantity.value} {observation.valueQuantity.unit}
