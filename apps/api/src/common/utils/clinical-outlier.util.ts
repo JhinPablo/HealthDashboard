@@ -1,4 +1,11 @@
-export function detectClinicalOutlier(code: string, value: number): boolean {
+export function detectClinicalOutlier(
+  code: string | null | undefined,
+  value: number | null | undefined
+): boolean {
+  if (!code || typeof value !== "number") {
+    return false;
+  }
+
   const normalizedCode = code.toLowerCase();
 
   if (normalizedCode.includes("temperature")) {

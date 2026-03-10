@@ -21,20 +21,20 @@ export class ObservationEntity {
   @JoinColumn({ name: "patient_id" })
   patient!: PatientEntity;
 
-  @Column()
-  code!: string;
+  @Column({ nullable: true })
+  code!: string | null;
 
-  @Column("float")
-  value!: number;
+  @Column("float", { nullable: true })
+  value!: number | null;
 
-  @Column()
-  unit!: string;
+  @Column({ nullable: true })
+  unit!: string | null;
 
-  @Column({ name: "effective_datetime", type: "timestamptz" })
-  effectiveDateTime!: Date;
+  @Column({ name: "effective_datetime", type: "timestamptz", nullable: true })
+  effectiveDateTime!: Date | null;
 
-  @Column()
-  status!: string;
+  @Column({ nullable: true })
+  status!: string | null;
 
   @Column({ type: "text", nullable: true })
   notes!: string | null;

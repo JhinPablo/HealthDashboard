@@ -155,21 +155,26 @@ export class ObservationsService {
 
   private toFhirResource(observation: ObservationEntity): ObservationResourceDto {
     const outlier = detectClinicalOutlier(observation.code, observation.value);
+    const code = observation.code ?? "unknown-observation";
+    const value = observation.value ?? 0;
+    const unit = observation.unit ?? "unknown";
+    const status = observation.status ?? "unknown";
+    const effectiveDateTime = observation.effectiveDateTime ?? observation.createdAt ?? new Date();
 
     return {
       resourceType: "Observation",
       id: String(observation.id),
-      status: observation.status,
+      status,
       code: {
-        text: observation.code
+        text: code
       },
       subject: {
         reference: `Patient/${observation.patientId}`
       },
-      effectiveDateTime: observation.effectiveDateTime.toISOString(),
+      effectiveDateTime: effectiveDateTime.toISOString(),
       valueQuantity: {
-        value: observation.value,
-        unit: observation.unit
+        value,
+        unit
       },
       interpretation: outlier ? [{ text: "critical-outlier" }] : undefined,
       note: observation.notes ? [{ text: observation.notes }] : undefined
