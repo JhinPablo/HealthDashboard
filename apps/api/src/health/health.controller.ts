@@ -3,9 +3,29 @@ import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { Public } from "../common/decorators/public.decorator";
 
 @ApiTags("health")
-@Controller("health")
+@Controller()
 export class HealthController {
   @Get()
+  @Public()
+  @ApiOkResponse({
+    schema: {
+      example: {
+        service: "HealthDashboard API",
+        status: "ok",
+        docs: "/docs",
+        health: "/health"
+      }
+    }
+  })
+  getRoot() {
+    return {
+      service: "HealthDashboard API",
+      status: "ok",
+      docs: "/docs",
+      health: "/health"
+    };
+  }
+
   @Public()
   @ApiOkResponse({
     schema: {
@@ -14,6 +34,7 @@ export class HealthController {
       }
     }
   })
+  @Get("health")
   getHealth() {
     return { status: "ok" };
   }
