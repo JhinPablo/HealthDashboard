@@ -41,6 +41,23 @@ function parseJwtExpiresIn(rawValue: string | undefined): number {
   return amount * multiplier;
 }
 
+function parseBoolean(rawValue: string | undefined, defaultValue: boolean): boolean {
+  if (rawValue == null || rawValue.trim() === "") {
+    return defaultValue;
+  }
+
+  return rawValue.trim().toLowerCase() === "true";
+}
+
+function shouldSynchronizeSchema(databaseUrl: string, rawValue: string | undefined): boolean {
+  const isProduction = process.env.NODE_ENV === "production";
+  const isRenderDatabase =
+    databaseUrl.includes("render.com") || databaseUrl.includes("@dpg-") || databaseUrl.includes("//dpg-");
+  const defaultValue = !isProduction && !isRenderDatabase;
+
+  return parseBoolean(rawValue, defaultValue);
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -69,7 +86,10 @@ function parseJwtExpiresIn(rawValue: string | undefined): number {
           type: "postgres" as const,
           url: databaseUrl,
           autoLoadEntities: true,
-          synchronize: true,
+          synchronize: shouldSynchronizeSchema(
+            databaseUrl,
+            configService.get<string>("DB_SYNCHRONIZE")
+          ),
           ssl: databaseUrl?.includes("render.com")
             ? { rejectUnauthorized: false }
             : false,
