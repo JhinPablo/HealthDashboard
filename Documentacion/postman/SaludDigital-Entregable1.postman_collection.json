@@ -1,0 +1,228 @@
+{
+  "info": {
+    "_postman_id": "a2be3bf5-274e-4e5b-8ee6-5a86857ca001",
+    "name": "SaludDigital Entregable 1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Coleccion base para login JWT, integracion por API keys, CRUD FHIR-lite y validacion de permisos."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "jwtToken", "value": "" },
+    { "key": "patientJwtToken", "value": "" },
+    { "key": "accessKey", "value": "" },
+    { "key": "doctorPermissionKey", "value": "" },
+    { "key": "patientPermissionKey", "value": "" },
+    { "key": "patientId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login doctor_admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"doctor.admin@saluddigital.local\",\n  \"password\": \"ChangeMe123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Who am I",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Doctor Admin JWT",
+      "item": [
+        {
+          "name": "Create patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"identifier\": [{ \"system\": \"national-id\", \"value\": \"12345678-9\" }],\n  \"name\": [{ \"given\": [\"Ana\"], \"family\": \"Perez\" }],\n  \"gender\": \"female\",\n  \"birthDate\": \"1990-04-12\",\n  \"medicalSummary\": \"Paciente hipertensa en control.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/fhir/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["fhir", "Patient"]
+            }
+          }
+        },
+        {
+          "name": "Create observation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": { \"text\": \"body-temperature\" },\n  \"subject\": { \"reference\": \"Patient/{{patientId}}\" },\n  \"effectiveDateTime\": \"2026-03-10T12:00:00.000Z\",\n  \"valueQuantity\": { \"value\": 37.6, \"unit\": \"C\" },\n  \"note\": \"Control matinal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/fhir/Observation",
+              "host": ["{{baseUrl}}"],
+              "path": ["fhir", "Observation"]
+            }
+          }
+        },
+        {
+          "name": "Admin dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Create patient portal user",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": {{patientId}},\n  \"email\": \"paciente1@saluddigital.local\",\n  \"fullName\": \"Paciente Uno\",\n  \"password\": \"PortalPaciente123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "patient"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient JWT",
+      "item": [
+        {
+          "name": "Get own patient record",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientJwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fhir/Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["fhir", "Patient", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get own observations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientJwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fhir/Observation?limit=20&offset=0&patientId={{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["fhir", "Observation"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "offset", "value": "0" },
+                { "key": "patientId", "value": "{{patientId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forbidden delete patient",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientJwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fhir/Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["fhir", "Patient", "{{patientId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Keys Integration",
+      "item": [
+        {
+          "name": "List patients with API keys",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Access-Key", "value": "{{accessKey}}" },
+              { "key": "X-Permission-Key", "value": "{{doctorPermissionKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fhir/Patient?limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["fhir", "Patient"],
+              "query": [
+                { "key": "limit", "value": "10" },
+                { "key": "offset", "value": "0" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List patient observations with patient API key",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Access-Key", "value": "{{accessKey}}" },
+              { "key": "X-Permission-Key", "value": "{{patientPermissionKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fhir/Observation?limit=20&offset=0&patientId={{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["fhir", "Observation"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "offset", "value": "0" },
+                { "key": "patientId", "value": "{{patientId}}" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

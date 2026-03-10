@@ -1,0 +1,15 @@
+{
+  "name": "saluddigital-proyecto1",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace @saluddigital/api",
+    "dev:web": "npm run dev --workspace @saluddigital/web",
+    "build": "npm run build --workspace @saluddigital/api && npm run build --workspace @saluddigital/web",
+    "test:api": "npm run test --workspace @saluddigital/api"
+  }
+}

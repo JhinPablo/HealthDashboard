@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: saluddigital-api
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npm run build --workspace @saluddigital/api
+    startCommand: npm run start --workspace @saluddigital/api
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 4000
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: DEFAULT_DOCTOR_EMAIL
+        value: doctor.admin@saluddigital.local
+      - key: DEFAULT_DOCTOR_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: ACCESS_KEYS
+        sync: false
+      - key: ADMIN_PERMISSION_KEY
+        sync: false
+      - key: MEDICO_PERMISSION_KEY
+        sync: false
+      - key: PACIENTE_PERMISSION_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: RATE_LIMIT_PER_MINUTE
+        value: 120
+      - key: CORS_ORIGINS
+        value: https://saluddigital-web.onrender.com,http://localhost:3000
+  - type: web
+    name: saluddigital-web
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npm run build --workspace @saluddigital/web
+    startCommand: npm run start --workspace @saluddigital/web
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        value: https://saluddigital-api.onrender.com

@@ -1,0 +1,14 @@
+.env
+node_modules
+dist
+.next
+coverage
+.turbo
+.render
+.env.local
+.env.production
+apps/api/jest.config.d.ts
+apps/api/jest.config.js
+apps/api/jest.config.js.map
+*.tsbuildinfo
+*.log
