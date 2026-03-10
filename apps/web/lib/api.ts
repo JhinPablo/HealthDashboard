@@ -9,7 +9,9 @@ import {
   UserSummary
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === "development" ? "http://localhost:4000" : "");
 
 export class ApiError extends Error {
   constructor(
@@ -25,6 +27,10 @@ async function apiFetch<T>(
   options: RequestInit = {},
   token?: string
 ): Promise<T> {
+  if (!API_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL is not configured.");
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {

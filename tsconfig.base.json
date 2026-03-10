@@ -6,16 +6,6 @@
       "DOM"
     ],
     "module": "commonjs",
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "@api/*": [
-        "apps/api/src/*"
-      ],
-      "@web/*": [
-        "apps/web/*"
-      ]
-    },
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
