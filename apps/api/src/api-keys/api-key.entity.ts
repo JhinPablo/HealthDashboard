@@ -19,8 +19,7 @@ export class ApiKeyEntity {
   label!: string;
 
   @Column({
-    type: "enum",
-    enum: Role
+    type: "varchar"
   })
   role!: Role;
 

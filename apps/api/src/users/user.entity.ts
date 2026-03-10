@@ -27,8 +27,7 @@ export class UserEntity {
   passwordHash!: string;
 
   @Column({
-    type: "enum",
-    enum: Role
+    type: "varchar"
   })
   role!: Role;
 
