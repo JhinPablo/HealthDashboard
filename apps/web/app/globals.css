@@ -246,6 +246,37 @@ textarea:focus {
   grid-column: 1 / -1;
 }
 
+.highlight-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.highlight-card {
+  padding: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.highlight-card strong {
+  font-family: var(--display-font);
+  font-size: 1.45rem;
+}
+
+.highlight-card p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.highlight-card-warning {
+  background: rgba(215, 123, 62, 0.08);
+}
+
+.highlight-card-critical {
+  background: rgba(163, 54, 45, 0.08);
+}
+
 .stats-grid {
   grid-column: 1 / -1;
   display: grid;
@@ -438,6 +469,145 @@ textarea:focus {
   font-size: 0.78rem;
 }
 
+.metric-risk-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.metric-risk-card {
+  border: 1px solid rgba(29, 48, 40, 0.08);
+  background: rgba(255, 255, 255, 0.76);
+  border-radius: 22px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.metric-risk-card:hover,
+.metric-risk-card-selected {
+  transform: translateY(-2px);
+  border-color: rgba(13, 119, 97, 0.28);
+  box-shadow: 0 18px 34px rgba(29, 48, 40, 0.12);
+}
+
+.metric-risk-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.metric-risk-header strong,
+.metric-risk-header span {
+  display: block;
+}
+
+.metric-risk-header span {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.metric-risk-track {
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(29, 48, 40, 0.08);
+  display: flex;
+}
+
+.metric-risk-bar {
+  height: 100%;
+  min-width: 0;
+}
+
+.metric-risk-bar-warning {
+  background: linear-gradient(135deg, #f2b068 0%, var(--accent) 100%);
+}
+
+.metric-risk-bar-critical {
+  background: linear-gradient(135deg, #d26a60 0%, var(--alert) 100%);
+}
+
+.metric-risk-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-risk-stats span,
+.metric-risk-meta {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.metric-risk-stats strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.metric-risk-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trend-point-group {
+  cursor: pointer;
+}
+
+.trend-axis-label {
+  fill: var(--ink-soft);
+  font-size: 11px;
+}
+
+.trend-point {
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 3;
+}
+
+.trend-point-normal {
+  fill: var(--brand);
+}
+
+.trend-point-warning {
+  fill: var(--accent);
+}
+
+.trend-point-critical {
+  fill: var(--alert);
+}
+
+.trend-point-selected {
+  filter: drop-shadow(0 0 10px rgba(13, 119, 97, 0.3));
+}
+
+.trend-selection-summary {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.trend-selection-summary div {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.trend-selection-summary span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
 .panel-card {
   display: grid;
 }
@@ -573,7 +743,8 @@ textarea:focus {
 @media (max-width: 1080px) {
   .login-shell,
   .dashboard-grid,
-  .split-tables {
+  .split-tables,
+  .highlight-grid {
     grid-template-columns: 1fr;
   }
 
@@ -610,10 +781,17 @@ textarea:focus {
 
   .stats-grid,
   .profile-block,
+  .metric-risk-stats,
+  .trend-selection-summary,
   .table-head,
   .table-row,
   .compact-table .table-head,
   .compact-table .table-row {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-risk-meta {
+    display: grid;
     grid-template-columns: 1fr;
   }
 }

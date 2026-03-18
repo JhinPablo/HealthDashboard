@@ -9,8 +9,6 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22
-      - key: PORT
-        value: 4000
       - key: JWT_EXPIRES_IN
         value: 8h
       - key: DEFAULT_DOCTOR_EMAIL
@@ -47,7 +45,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22
-      - key: PORT
-        value: 3000
       - key: NEXT_PUBLIC_API_URL
         value: https://healthdashboard-api.onrender.com

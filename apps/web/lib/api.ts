@@ -9,9 +9,32 @@ import {
   UserSummary
 } from "./types";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.NODE_ENV === "development" ? "http://localhost:4000" : "");
+function normalizeBaseUrl(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
+function getApiUrl(): string {
+  const configuredUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (configuredUrl) {
+    return normalizeBaseUrl(configuredUrl);
+  }
+
+  if (typeof window === "undefined") {
+    return process.env.NODE_ENV === "development" ? "http://localhost:4000" : "";
+  }
+
+  const { hostname, protocol } = window.location;
+
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return "http://localhost:4000";
+  }
+
+  if (hostname.endsWith("-web.onrender.com")) {
+    return normalizeBaseUrl(`${protocol}//${hostname.replace("-web.", "-api.")}`);
+  }
+
+  return "";
+}
 
 export class ApiError extends Error {
   constructor(
@@ -27,11 +50,13 @@ async function apiFetch<T>(
   options: RequestInit = {},
   token?: string
 ): Promise<T> {
-  if (!API_URL) {
+  const apiUrl = getApiUrl();
+
+  if (!apiUrl) {
     throw new Error("NEXT_PUBLIC_API_URL is not configured.");
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${apiUrl}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -77,7 +102,7 @@ export const api = {
 
   getApiKeys: (token: string) => apiFetch<ApiKeySummary[]>("/admin/api-keys", {}, token),
 
-  getPatients: (token: string, limit = 50, offset = 0) =>
+  getPatients: (token: string, limit = 100, offset = 0) =>
     apiFetch<FhirBundle<PatientResource>>(
       `/fhir/Patient?limit=${limit}&offset=${offset}`,
       {},
@@ -87,7 +112,7 @@ export const api = {
   getPatient: (token: string, patientId: number) =>
     apiFetch<PatientResource>(`/fhir/Patient/${patientId}`, {}, token),
 
-  getObservations: (token: string, patientId?: number, limit = 200, offset = 0) =>
+  getObservations: (token: string, patientId?: number, limit = 100, offset = 0) =>
     apiFetch<FhirBundle<ObservationResource>>(
       `/fhir/Observation?limit=${limit}&offset=${offset}${patientId ? `&patientId=${patientId}` : ""}`,
       {},

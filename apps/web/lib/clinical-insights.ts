@@ -62,6 +62,16 @@ export function classifyObservationSeverity(
     }
   }
 
+  if (code.includes("weight")) {
+    if (value <= 40 || value >= 120) {
+      return "critical";
+    }
+
+    if (value <= 45 || value >= 110) {
+      return "warning";
+    }
+  }
+
   return "normal";
 }
 

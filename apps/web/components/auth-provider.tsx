@@ -3,7 +3,6 @@
 import {
   createContext,
   PropsWithChildren,
-  startTransition,
   useContext,
   useEffect,
   useMemo,
@@ -35,6 +34,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const storedToken = window.localStorage.getItem(TOKEN_KEY);
     const storedUser = window.localStorage.getItem(USER_KEY);
 
+    if (!storedToken && storedUser) {
+      window.localStorage.removeItem(USER_KEY);
+      setReady(true);
+      return;
+    }
+
     if (storedToken) {
       setToken(storedToken);
     }
@@ -53,10 +58,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const login = async (email: string, password: string) => {
     const response = await api.login(email, password);
 
-    startTransition(() => {
-      setToken(response.accessToken);
-      setUser(response.user);
-    });
+    setToken(response.accessToken);
+    setUser(response.user);
 
     window.localStorage.setItem(TOKEN_KEY, response.accessToken);
     window.localStorage.setItem(USER_KEY, JSON.stringify(response.user));
@@ -65,10 +68,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   };
 
   const logout = () => {
-    startTransition(() => {
-      setToken(null);
-      setUser(null);
-    });
+    setToken(null);
+    setUser(null);
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
   };
@@ -79,9 +80,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     const me = await api.me(token);
-    startTransition(() => {
-      setUser(me);
-    });
+    setUser(me);
     window.localStorage.setItem(USER_KEY, JSON.stringify(me));
   };
 

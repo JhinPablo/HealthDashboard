@@ -7,17 +7,17 @@ import { useAuth } from "./auth-provider";
 
 export function LoginView() {
   const router = useRouter();
-  const { login, user, ready } = useAuth();
+  const { login, token, user, ready } = useAuth();
   const [email, setEmail] = useState("doctor.admin@saluddigital.local");
   const [password, setPassword] = useState("ChangeMe123!");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (ready && user) {
+    if (ready && token && user) {
       router.replace("/dashboard");
     }
-  }, [ready, router, user]);
+  }, [ready, router, token, user]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -26,12 +26,13 @@ export function LoginView() {
     startTransition(async () => {
       try {
         await login(email, password);
-        router.replace("/dashboard");
       } catch (submissionError) {
         setError(
           submissionError instanceof ApiError
             ? submissionError.message
-            : "No fue posible iniciar sesion."
+            : submissionError instanceof Error
+              ? submissionError.message
+              : "No fue posible iniciar sesion."
         );
       }
     });

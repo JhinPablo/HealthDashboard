@@ -28,5 +28,9 @@ export function detectClinicalOutlier(
     return value <= 90 || value > 100;
   }
 
+  if (normalizedCode.includes("weight")) {
+    return value <= 40 || value >= 120;
+  }
+
   return false;
 }
